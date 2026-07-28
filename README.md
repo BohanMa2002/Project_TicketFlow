@@ -2,7 +2,7 @@
 
 **Project owner:** Bohan Ma (AI Business Partner, Kubrick Group)
 **Stakeholders:** Natasha Thomas (project owner)
-**Last updated:** July 27, 2026
+**Last updated:** July 28, 2026
 **Version:** v2 (post-demo additions: Priority Tier, Start/Due Dates, Checklist, richer description, timezone fix)
 **Status:** Production-ready (handover pending Natasha's cutover approval); Phase 6 (SLA alerts) ~95% built, Power Automate connector stalling, shelved for now.
 
@@ -159,7 +159,7 @@ The routing is keyed on Region × Capability. UPNs follow the pattern `firstname
 | Platform Engineering | Jessica Cubbison | `jessicacubbison@kubrickgroup.com` |
 | AI (ML & GenAI) | Chloe Miles | `chloemiles@kubrickgroup.com` |
 | Data & AI Product Management | Selva Ross | `selvaross@kubrickgroup.com` |
-| Data & AI Governance | Sianika Malcolm | `sianikamalcolm@kubrickgroup.com` (note "sianika" spelling) |
+| Data & AI Governance | Sianika Malcolm | `sianikamalcolm@kubrickgroup.com` |
 | Applied Data Intelligence | Chloe Miles | `chloemiles@kubrickgroup.com` |
 
 ### Global region (triage)
