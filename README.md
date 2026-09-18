@@ -1,23 +1,23 @@
 # TicketFlow — Technical README
 
 **Project owner:** Bohan Ma (AI Business Partner, Kubrick Group)
-**Stakeholders:** Natasha Thomas (project owner)
-**Last Feature Update:** July 28, 2026
-**Version:** v2 (post-demo additions: Priority Tier, Start/Due Dates, Checklist, richer description, timezone fix)
-**Status:** Production-ready (handover pending Natasha's cutover approval); Phase 6 (SLA alerts) ~95% built, Power Automate connector stalling, shelved for now.
+**Stakeholders:** Natasha Thomas (project owner), Anna Roberts (manager)
+**Last updated:** September 18, 2026
+**Version:** v3 (routing matrix changes; launched)
+**Status:** **LIVE — launched and in active use.** Phases 1–5 running in production. Phase 6 (24-hour SLA alert) is built but **disabled**, pending resolution of Power Automate / Teams connector stalling.
 
 ---
 
 ## 1. What this is
 
-TicketFlow is the Kubrick internal team's automated intake system. It converts Microsoft Forms submissions into Microsoft Planner tasks with auto-tagging, auto-routing to the correct Resource Managers (RMs) by region × capability, Teams notifications to assignees, and (in-progress) SLA alerts when tickets stall.
+TicketFlow is the AI Business Partner team's automated intake system. It converts Microsoft Forms submissions into Microsoft Planner tasks with auto-tagging, auto-routing to the correct Resource Managers (RMs) by region × capability, and Teams notifications to assignees.
 
 The system consists of **two separate Power Automate flows**:
 
-1. **TicketFlow** — event-driven; fires on each form submission. Handles intake, ticket creation, RM routing, and notifications.
-2. **TicketFlow — Stage 2 SLA Alerts** — time-driven; runs on a schedule. Detects tickets stuck in early stages and fires reminder DMs.
+1. **TicketFlow** — event-driven; fires on each form submission. Handles intake, ticket creation, RM routing, and notifications. **Live and in use.**
+2. **TicketFlow — Stage 2 SLA Alerts** — time-driven; runs on a schedule. Detects tickets stuck in Stage 1 and fires reminder DMs. **Built but currently disabled** — see Issue A in section 7.
 
-Both flows are currently built against a test Planner board ("Project TicketFlow Test Board A"). Production cutover to the real form and Planner board is pending Natasha's scheduling.
+⚠️ **Identifiers below reflect the development environment ("Project TicketFlow Test Board A").** If the launch involved cutting over to a different form or Planner board, the Group Id, Plan Id, bucket IDs and form field IDs in section 2 all need re-capturing from the live environment — see section 8 for the procedure.
 
 ---
 
@@ -49,7 +49,7 @@ These IDs are referenced throughout both flows. If anything is rebuilt, copy the
 | Capability Required (multi-select) | `r5ec9a97f0a07442dae2aa56ea3344b3c` |
 | Region (single-select) | referenced via dynamic content as "Region Where should..." |
 | Responder/Requester | `body/responder` (returns UPN) |
-| Submission date | `body/submitDate` (returned in UTC) |
+| Submission date | `body/submitDate` |
 | Priority Tier (single-select) | referenced via dynamic content |
 | Required Start Date | referenced via dynamic content |
 | Required By Date | referenced via dynamic content (added June 2026) |
@@ -144,8 +144,8 @@ The routing is keyed on Region × Capability. UPNs follow the pattern `firstname
 
 | Capability | Resource Manager | UPN |
 | --- | --- | --- |
-| Data Engineering | Emily Coulson | `emilycoulson@kubrickgroup.com` |
-| Platform Engineering | Emily Coulson | `emilycoulson@kubrickgroup.com` |
+| Data Engineering | Natasha Thomas | `natashathomas@kubrickgroup.com` |
+| Platform Engineering | Natasha Thomas | `natashathomas@kubrickgroup.com` |
 | AI (ML & GenAI) | Selin Yolladi | `selinyolladi@kubrickgroup.com` |
 | Data & AI Product Management | Selin Yolladi | `selinyolladi@kubrickgroup.com` |
 | Data & AI Governance | Selin Yolladi | `selinyolladi@kubrickgroup.com` |
@@ -155,11 +155,11 @@ The routing is keyed on Region × Capability. UPNs follow the pattern `firstname
 
 | Capability | Resource Manager | UPN |
 | --- | --- | --- |
-| Data Engineering | Conor McLachlan | `conormclachlan@kubrickgroup.com` |
+| Data Engineering | Anna Macauley | `annamacauley@kubrickgroup.com` |
 | Platform Engineering | Jessica Cubbison | `jessicacubbison@kubrickgroup.com` |
 | AI (ML & GenAI) | Chloe Miles | `chloemiles@kubrickgroup.com` |
 | Data & AI Product Management | Selva Ross | `selvaross@kubrickgroup.com` |
-| Data & AI Governance | Sianika Malcolm | `sianikamalcolm@kubrickgroup.com` |
+| Data & AI Governance | Sianika Malcolm | `sianikamalcolm@kubrickgroup.com` (note "sianika" spelling) |
 | Applied Data Intelligence | Chloe Miles | `chloemiles@kubrickgroup.com` |
 
 ### Global region (triage)
@@ -168,10 +168,21 @@ Both RMs always notified — they manually reassign as needed.
 
 | RM | UPN |
 | --- | --- |
-| Anna Shadbolt | `annashadbolt@kubrickgroup.com` |
+| Anna Macauley | `annamacauley@kubrickgroup.com` |
 | Natasha Thomas | `natashathomas@kubrickgroup.com` |
 
 In addition to RM assignment, the **requester** is always added to the task and notified, regardless of region.
+
+### RMs no longer in the matrix
+
+Two RMs were routed to in earlier versions and no longer appear anywhere in the matrix. Their variables are dead and can be removed from the flow:
+
+| Former RM | Previously covered | Now routed to |
+| --- | --- | --- |
+| Emily Coulson | US Data Engineering, US Platform Engineering | Natasha Thomas |
+| Conor McLachlan | UK Data Engineering | Anna Macauley |
+
+Anna Shadbolt's Global slot is now held by Anna Macauley.
 
 ---
 
@@ -200,17 +211,17 @@ Initialize 6 Boolean variables (one per capability):
   isDataEng, isAI_MLGenAI, isPlatformEng,
   isDataAIProdMgmt, isDataAIGov, isAppliedDataIntel
     ↓
-Initialize 9 String variables (one per RM):
-  rmEmilyCoulson, rmSelinYolladi, rmConorMclachlan,
-  rmSelvaRoss, rmChloeMiles, rmJessicaCubbison,
-  rmSianikaMalcolm, rmAnnaShadbolt, rmNatashaThomas
+Initialize 7 String variables (one per RM):
+  rmSelinYolladi, rmSelvaRoss, rmChloeMiles,
+  rmJessicaCubbison, rmSianikaMalcolm,
+  rmAnnaMacauley, rmNatashaThomas
     ↓
 Apply to each (Capability — parsed from form JSON)
     ├── Switch on Current item (capability) → set the matching boolean
     └── Switch on Region:
           ├── Case UK → nested Switch on capability → set the matching UK RM variable
           ├── Case US → nested Switch on capability → set the matching US RM variable
-          └── Case Global → set rmAnnaShadbolt + rmNatashaThomas directly
+          └── Case Global → set rmAnnaMacauley + rmNatashaThomas directly
     ↓
 Build Assignee Array (Compose)
     ↓
@@ -273,14 +284,12 @@ Multi-line readable form:
 
 ```
 union(
-  if(empty(variables('rmEmilyCoulson')), json('[]'), createArray(variables('rmEmilyCoulson'))),
   if(empty(variables('rmSelinYolladi')), json('[]'), createArray(variables('rmSelinYolladi'))),
-  if(empty(variables('rmConorMclachlan')), json('[]'), createArray(variables('rmConorMclachlan'))),
   if(empty(variables('rmSelvaRoss')), json('[]'), createArray(variables('rmSelvaRoss'))),
   if(empty(variables('rmChloeMiles')), json('[]'), createArray(variables('rmChloeMiles'))),
   if(empty(variables('rmJessicaCubbison')), json('[]'), createArray(variables('rmJessicaCubbison'))),
   if(empty(variables('rmSianikaMalcolm')), json('[]'), createArray(variables('rmSianikaMalcolm'))),
-  if(empty(variables('rmAnnaShadbolt')), json('[]'), createArray(variables('rmAnnaShadbolt'))),
+  if(empty(variables('rmAnnaMacauley')), json('[]'), createArray(variables('rmAnnaMacauley'))),
   if(empty(variables('rmNatashaThomas')), json('[]'), createArray(variables('rmNatashaThomas'))),
   createArray(triggerOutputs()?['body/responder'])
 )
@@ -289,7 +298,7 @@ union(
 Power Automate doesn't accept multi-line expressions in the fx tab. Paste as a single line:
 
 ```
-union(if(empty(variables('rmEmilyCoulson')),json('[]'),createArray(variables('rmEmilyCoulson'))),if(empty(variables('rmSelinYolladi')),json('[]'),createArray(variables('rmSelinYolladi'))),if(empty(variables('rmConorMclachlan')),json('[]'),createArray(variables('rmConorMclachlan'))),if(empty(variables('rmSelvaRoss')),json('[]'),createArray(variables('rmSelvaRoss'))),if(empty(variables('rmChloeMiles')),json('[]'),createArray(variables('rmChloeMiles'))),if(empty(variables('rmJessicaCubbison')),json('[]'),createArray(variables('rmJessicaCubbison'))),if(empty(variables('rmSianikaMalcolm')),json('[]'),createArray(variables('rmSianikaMalcolm'))),if(empty(variables('rmAnnaShadbolt')),json('[]'),createArray(variables('rmAnnaShadbolt'))),if(empty(variables('rmNatashaThomas')),json('[]'),createArray(variables('rmNatashaThomas'))),createArray(triggerOutputs()?['body/responder']))
+union(if(empty(variables('rmSelinYolladi')),json('[]'),createArray(variables('rmSelinYolladi'))),if(empty(variables('rmSelvaRoss')),json('[]'),createArray(variables('rmSelvaRoss'))),if(empty(variables('rmChloeMiles')),json('[]'),createArray(variables('rmChloeMiles'))),if(empty(variables('rmJessicaCubbison')),json('[]'),createArray(variables('rmJessicaCubbison'))),if(empty(variables('rmSianikaMalcolm')),json('[]'),createArray(variables('rmSianikaMalcolm'))),if(empty(variables('rmAnnaMacauley')),json('[]'),createArray(variables('rmAnnaMacauley'))),if(empty(variables('rmNatashaThomas')),json('[]'),createArray(variables('rmNatashaThomas'))),createArray(triggerOutputs()?['body/responder']))
 ```
 
 **Historical note:** an earlier version used `createArray()` (no arguments) instead of `json('[]')` for the empty case. This failed with "The function 'createArray' expects a comma separated list of parameters. The function was invoked with no parameters." `json('[]')` is the correct way to produce an empty array literal in Power Automate expressions.
@@ -308,18 +317,6 @@ Input: `["Data Engineering","AI (ML & GenAI)"]`
 Output: `Data Engineering,AI (ML & GenAI)`
 
 Used for human-readable display in DMs. Not used for any logic — pure presentation.
-
-#### Submission time timezone conversion (added June 3, 2026)
-
-Microsoft Forms returns `submitDate` in UTC. The team is Eastern Time. Display conversion:
-
-```
-convertTimeZone(outputs('Get_response_details')?['body/submitDate'], 'UTC', 'Eastern Standard Time', 'M/d/yyyy h:mm tt')
-```
-
-⚠️ **Windows timezone names only.** `'Eastern Standard Time'` is the correct Power Automate identifier and auto-handles daylight saving (EST/EDT). Do NOT use IANA names like `America/New_York` — they won't work.
-
-Used wherever `submitDate` is displayed (task description and Teams DM body).
 
 ### 4.4 Create a task (Planner action)
 
@@ -341,7 +338,7 @@ The description is set in **Update task details** (not Create a task — that st
 
 ```
 Project Sponsor: [Requester Name]
-Submitted: [convertTimeZone expression on submitDate]
+Submitted: [Submission time]
 Priority Tier: [priorityTierDescription]
 
      ─── Request Details ───
@@ -435,7 +432,7 @@ After task creation, an Apply to each iterates over `Build_Assignee_Array` and D
 <p><strong>@{outputs('Create_a_task')?['body/title']}</strong></p>
 <p><strong>Capability:</strong> @{outputs('Format_Capability_String')}<br>
 <strong>Requester:</strong> @{outputs('Get_response_details')?['body/responder']}<br>
-<strong>Submitted:</strong> @{convertTimeZone(outputs('Get_response_details')?['body/submitDate'], 'UTC', 'Eastern Standard Time', 'M/d/yyyy h:mm tt')}<br>
+<strong>Submitted:</strong> @{outputs('Get_response_details')?['body/submitDate']}<br>
 <strong>Priority:</strong> @{variables('priorityTierDescription')}</p>
 <p><a href="https://tasks.office.com/kubrickgroup.com/Home/Task/@{outputs('Create_a_task')?['body/id']}">Open in Planner →</a></p>
 ```
@@ -448,7 +445,6 @@ After task creation, an Apply to each iterates over `Build_Assignee_Array` and D
 - **Bucket name typo:** Stage 2 is named "Awaiting Contract" instead of "Awaiting Contact." Functionally harmless since filtering is by ID, but worth fixing for consistency.
 - **Capability rendered as JSON in description:** the description shows `Capability: ["AI (ML & GenAI)"]` with brackets and quotes. Cosmetic — RMs can read it, but could be swapped to use `Format_Capability_String` for cleaner display.
 - **Estimated Duration vs Required By Date overlap:** since Required By Date was added, Estimated Duration is partially redundant. Awaiting Natasha's decision on whether to delete, disclaimer, or reframe as "Effort Estimate (if known)."
-- **Timezone display is hardcoded to Eastern Time:** UK requesters will see EST-converted timestamps, which may be confusing for them. Acceptable for v1 since most consumers are US-based.
 
 ---
 
@@ -618,9 +614,11 @@ Record of decisions made and their rationale.
 | Preserve full Priority Tier label in description and DM via `priorityTierDescription` variable | RMs see the meaningful tier name ("Tier 1 – Revenue generating") rather than just the priority flag | Implemented |
 | Bind Required Start Date → Planner Start Date Time, Required By Date → Planner Due Date Time | Native Planner fields are more discoverable than description-only text | Implemented |
 | Add 3-item standard checklist to every task (Resources assigned / Requester notified / Assigned resources notified) | Natasha's demo ask; standardizes workflow tracking | Implemented |
-| Convert UTC `submitDate` to Eastern Time for display | Forms returns UTC, team is US-based; 4-hour timestamp discrepancy was confusing | Implemented |
-| Use Windows timezone name `'Eastern Standard Time'` (not IANA) | Power Automate's `convertTimeZone()` function requires Windows timezone identifiers; auto-handles EST/EDT | Implemented |
 | Add new `Required By Date` form field rather than computing Due Date from Estimated Duration | Avoids manufacturing a synthetic deadline; captures customer intent directly | Implemented (Natasha approved) |
+| Launch with Phase 6 (SLA alert) disabled rather than holding the whole system back | Phases 1–5 deliver the bulk of the value; the SLA alert is a safety net, not the core loop. Shipping without it beats not shipping | Implemented |
+| US Data Engineering + Platform Engineering reassigned from Emily Coulson to Natasha Thomas | RM coverage change | Implemented (Sept 2026) |
+| UK Data Engineering reassigned from Conor McLachlan to Anna Macauley | RM coverage change | Implemented (Sept 2026) |
+| Global triage slot moved from Anna Shadbolt to Anna Macauley | RM coverage change | Implemented (Sept 2026) |
 
 ### Decisions explicitly tabled (not built but on the roadmap)
 
@@ -632,7 +630,6 @@ Record of decisions made and their rationale.
 | Switch to Direct HTTP to Microsoft Graph for GUID→UPN | Premium connector risk; superseded by embedding UPNs in description |
 | SharePoint list as routing source | "Cleanest" architecture but significant additional infrastructure |
 | Estimated Duration field cleanup | Awaiting Natasha's decision on delete / disclaimer / rename as "Effort Estimate" |
-| Multi-timezone display in description | UK consumers will see EST timestamps; acceptable for v1, revisit if complaints surface |
 
 ---
 
@@ -656,6 +653,12 @@ Record of decisions made and their rationale.
 
 **Resolution status:** unresolved. Flow correctness verified earlier; issue is platform/environmental, not logic.
 
+**Current state: the SLA flow is DISABLED.** TicketFlow launched without it. Users were told the 24-hour stall alert is off and to check the board manually in the meantime. Nothing else in the system depends on this flow, so it can be re-enabled independently once the stalling is resolved.
+
+**Still outstanding before it can be re-enabled:**
+- Root-cause or work around the Teams API 500s / retry storms
+- Add send-once dedup, or the flow will re-alert hourly on the same breached ticket (72 DMs over 3 days — see section 6, tabled items)
+
 ### Issue B: Forms license expiry
 
 **Symptom:** every ~2 weeks, the Microsoft Forms connector returns `751: "Did not find Forms licenses for current user."` Flow becomes unable to run.
@@ -676,13 +679,9 @@ Record of decisions made and their rationale.
 
 ## 8. Operational runbook
 
-### How to deploy to production (Phase 7)
+### How to re-point the flows at a different form or Planner board
 
-Pending Natasha's scheduling of:
-1. Real AIBP intake form availability (replaces the placeholder form used during development)
-2. Real Planner board availability (replaces "Project TicketFlow Test Board A")
-
-Once available:
+TicketFlow has launched. Keep this procedure for any future environment move — a new board, a rebuilt form, or a migration off the development plan if that hasn't already happened.
 
 1. **In TicketFlow:**
    - Change the form reference in the "When a new response is submitted" trigger
@@ -701,21 +700,33 @@ Once available:
 
 4. **License check before go-live:**
    - Verify Bohan's (or whoever owns the flow) Microsoft Forms license is permanently granted, not on a 2-week trial
-   - Without this, the production flow will break every 2 weeks
+   - Without this, the flow will break every 2 weeks
 
 5. **Smoke test** with one real submission end-to-end before announcing to the team.
 
-### How to add or change a Resource Manager
+### How to add, change, or remove a Resource Manager
 
-Two flows affected:
+Only TicketFlow is affected. The SLA flow reads UPNs out of the task description, so it picks up routing changes automatically with no edits.
 
-1. **TicketFlow:**
-   - Add the new RM as a string variable in the Initialize variables section
-   - Update the relevant Switch case (Region × Capability) to set the new variable
-   - Add the new variable to the union() in Build Assignee Array using the same `if(empty(...), json('[]'), createArray(...))` pattern
+**To add an RM:**
+1. Add the new RM as a string variable in the Initialize variables section
+2. Update the relevant Switch case (Region × Capability) to set the new variable
+3. Add the new variable to the union() in Build Assignee Array using the same `if(empty(...), json('[]'), createArray(...))` pattern
 
-2. **SLA flow:**
-   - No changes needed. The SLA flow reads UPNs from the task description, so it picks up the new RM automatically.
+**To reassign a route to an existing RM:**
+1. Find the relevant Switch case (Region × Capability)
+2. Change its Set variable action to target the new RM's variable
+3. No union() change needed — that variable is already in it
+
+**To remove an RM entirely:**
+1. Reassign every Switch case that sets their variable
+2. Check whether the variable is now set by *no* cases — if so it's dead
+3. Remove its `if(empty(...))` clause from the union() in Build Assignee Array
+4. Delete its Initialize variable action
+
+⚠️ Step 2 is the one people skip. An RM can quietly fall out of the matrix when their last route is reassigned — that's exactly what happened to Emily Coulson and Conor McLachlan in the September 2026 change. A dead variable does no harm (it's always empty, so `union()` skips it), but it makes the flow harder to read and implies coverage that doesn't exist.
+
+**Already-live changes need no re-test of existing tickets.** Routing is resolved at creation time and written into the description, so tickets created before a routing change keep their original assignees and alert list.
 
 ### How to add a new capability
 
@@ -762,18 +773,6 @@ Existing tasks will NOT retroactively get the new checklist — only newly-creat
 4. Position cursor at the desired location
 5. Open dynamic content → pick the new field from Get response details
 
-### How to change the displayed timezone
-
-If the team shifts primary location (e.g., to UK):
-
-1. Find every instance of `'Eastern Standard Time'` in the flow
-2. Replace with the appropriate Windows timezone name:
-   - UK: `'GMT Standard Time'`
-   - Central US: `'Central Standard Time'`
-   - Pacific US: `'Pacific Standard Time'`
-
-Windows timezone names auto-handle daylight saving. Do not use IANA names.
-
 ---
 
 ## 9. Glossary
@@ -790,7 +789,6 @@ Windows timezone names auto-handle daylight saving. Do not use IANA names.
 | GUID | Globally Unique Identifier — Azure AD's internal user ID format (e.g., `23ac0948-7b26-40a2-bb05-bff119b3165b`) |
 | Priority Tier | Form-level concept (Tier 1/2/3) mapping to Planner's native Priority field |
 | en-dash | The `–` character (U+2013) used in Priority Tier labels; distinct from the hyphen-minus `-` |
-| Windows timezone name | Microsoft's timezone identifier format (e.g., `Eastern Standard Time`) used by Power Automate; auto-handles daylight saving |
 
 ---
 
@@ -806,14 +804,9 @@ json(outputs('Get_response_details')?['body/r5ec9a97f0a07442dae2aa56ea3344b3c'])
 replace(replace(replace(outputs('Get_response_details')?['body/r5ec9a97f0a07442dae2aa56ea3344b3c'], '[', ''), ']', ''), '"', '')
 ```
 
-### Convert submitDate from UTC to Eastern Time
-```
-convertTimeZone(outputs('Get_response_details')?['body/submitDate'], 'UTC', 'Eastern Standard Time', 'M/d/yyyy h:mm tt')
-```
-
 ### Build assignee array (single line)
 ```
-union(if(empty(variables('rmEmilyCoulson')),json('[]'),createArray(variables('rmEmilyCoulson'))),if(empty(variables('rmSelinYolladi')),json('[]'),createArray(variables('rmSelinYolladi'))),if(empty(variables('rmConorMclachlan')),json('[]'),createArray(variables('rmConorMclachlan'))),if(empty(variables('rmSelvaRoss')),json('[]'),createArray(variables('rmSelvaRoss'))),if(empty(variables('rmChloeMiles')),json('[]'),createArray(variables('rmChloeMiles'))),if(empty(variables('rmJessicaCubbison')),json('[]'),createArray(variables('rmJessicaCubbison'))),if(empty(variables('rmSianikaMalcolm')),json('[]'),createArray(variables('rmSianikaMalcolm'))),if(empty(variables('rmAnnaShadbolt')),json('[]'),createArray(variables('rmAnnaShadbolt'))),if(empty(variables('rmNatashaThomas')),json('[]'),createArray(variables('rmNatashaThomas'))),createArray(triggerOutputs()?['body/responder']))
+union(if(empty(variables('rmSelinYolladi')),json('[]'),createArray(variables('rmSelinYolladi'))),if(empty(variables('rmSelvaRoss')),json('[]'),createArray(variables('rmSelvaRoss'))),if(empty(variables('rmChloeMiles')),json('[]'),createArray(variables('rmChloeMiles'))),if(empty(variables('rmJessicaCubbison')),json('[]'),createArray(variables('rmJessicaCubbison'))),if(empty(variables('rmSianikaMalcolm')),json('[]'),createArray(variables('rmSianikaMalcolm'))),if(empty(variables('rmAnnaMacauley')),json('[]'),createArray(variables('rmAnnaMacauley'))),if(empty(variables('rmNatashaThomas')),json('[]'),createArray(variables('rmNatashaThomas'))),createArray(triggerOutputs()?['body/responder']))
 ```
 
 ### Embed UPNs in description
@@ -878,13 +871,6 @@ https://tasks.office.com/kubrickgroup.com/Home/Task/@{outputs('Create_a_task')?[
 
 For tasks referenced inside the SLA flow's loop, replace `outputs('Create_a_task')?['body/id']` with `items('Check_Each_Stage_1_Task')?['id']`.
 
-### Windows timezone names reference
-- `Eastern Standard Time` — US East (handles EST/EDT)
-- `Central Standard Time` — US Central (handles CST/CDT)
-- `Pacific Standard Time` — US West (handles PST/PDT)
-- `GMT Standard Time` — UK (handles GMT/BST)
-- `W. Europe Standard Time` — Western Europe (handles CET/CEST)
-
 ---
 
 ## 11. Change log
@@ -897,5 +883,10 @@ For tasks referenced inside the SLA flow's loop, replace `outputs('Create_a_task
 | June 3, 2026 (v2) | Added standard 3-item checklist to every task | 4.6, 6, 10 |
 | June 3, 2026 (v2) | Restructured description with sections: Request Details / Timeframe Details / Request Objectives | 4.5 |
 | June 3, 2026 (v2) | Added new "Required By Date" field to the Microsoft Form (Natasha-approved scope change) | 2, 8 |
-| June 3, 2026 (v2) | Fixed timezone bug: `submitDate` now converts from UTC to Eastern Time via `convertTimeZone()` | 2, 4.3, 4.7, 6, 8, 10 |
 | June 3, 2026 (v2) | Added Priority line to Phase 5 Teams DM template | 4.7, 10 |
+| Sept 18, 2026 (v3) | **Launched.** Status changed to live; Phase 6 SLA flow marked disabled rather than in-progress | Header, 1, 6, 7 |
+| Sept 18, 2026 (v3) | US Data Engineering + Platform Engineering: Emily Coulson → Natasha Thomas | 3, 4.2, 4.3, 6, 10 |
+| Sept 18, 2026 (v3) | UK Data Engineering: Conor McLachlan → Anna Macauley | 3, 4.2, 4.3, 6, 10 |
+| Sept 18, 2026 (v3) | Global triage: Anna Shadbolt → Anna Macauley | 3, 4.2, 4.3, 6, 10 |
+| Sept 18, 2026 (v3) | RM variable count 9 → 7; `rmEmilyCoulson` and `rmConorMclachlan` retired, `rmAnnaShadbolt` → `rmAnnaMacauley` | 4.2, 4.3, 10 |
+| Sept 18, 2026 (v3) | Runbook: rewrote RM procedure to cover reassign and remove, not just add; re-pointing procedure de-scoped from "Phase 7 cutover" to general environment move | 8 |
