@@ -10,7 +10,7 @@
 
 ## 1. What this is
 
-TicketFlow is the AI Business Partner team's automated intake system. It converts Microsoft Forms submissions into Microsoft Planner tasks with auto-tagging, auto-routing to the correct Resource Managers (RMs) by region × capability, and Teams notifications to assignees.
+TicketFlow is Kubrick's automated bench resource intake system. It converts Microsoft Forms submissions into Microsoft Planner tasks with auto-tagging, auto-routing to the correct Resource Managers (RMs) by region × capability, and Teams notifications to assignees.
 
 The system consists of **two separate Power Automate flows**:
 
