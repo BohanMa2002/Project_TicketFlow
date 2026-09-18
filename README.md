@@ -1,7 +1,7 @@
 # TicketFlow — Technical README
 
 **Project owner:** Bohan Ma (AI Business Partner, Kubrick Group)
-**Stakeholders:** Natasha Thomas (project owner), Anna Roberts (manager)
+**Stakeholders:** Natasha Thomas (manager)
 **Last updated:** September 18, 2026
 **Version:** v3 (routing matrix changes; launched)
 **Status:** **LIVE — launched and in active use.** Phases 1–5 running in production. Phase 6 (24-hour SLA alert) is built but **disabled**, pending resolution of Power Automate / Teams connector stalling.
